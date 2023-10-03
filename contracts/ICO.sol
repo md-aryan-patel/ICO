@@ -2,9 +2,13 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./Token.sol";
 
-contract ico {
+contract ico is ReentrancyGuard {
+    using SafeMath for uint256;
+
     IERC20 token;
     uint256 cap;
     uint256 public pricePerToken;
@@ -93,28 +97,38 @@ contract ico {
         else if (currentState == 2) stage = SaleStage.postICO;
     }
 
-    function invest() external payable icoState returns (uint256 tokenRequire) {
+    function invest()
+        external
+        payable
+        icoState
+        nonReentrant
+        returns (uint256 tokenRequire)
+    {
         uint256 currAmount = token.balanceOf(address(this));
         require(currAmount > 0, "ICO: Insufficient amount");
-        tokenRequire = (msg.value / pricePerToken) * decimal;
+        tokenRequire = msg.value.mul(decimal).div(pricePerToken);
         require(
             (tokenRequire + totalTokenSold) <=
-                (tokenSalePercentage * cap) / 100,
+                tokenSalePercentage.mul(cap).div(100),
             "ICO: Crowdesale quota reached"
         );
 
         if (tokenRequire >= currAmount) {
-            tokenAmountInEth = (pricePerToken * currAmount) / decimal;
-            uint256 transaferAmount = msg.value - tokenAmountInEth;
-            contributers[msg.sender] += currAmount;
+            tokenAmountInEth = pricePerToken.mul(currAmount).div(decimal);
+            uint256 transaferAmount = msg.value.sub(tokenAmountInEth);
+            contributers[msg.sender] = currAmount.add(contributers[msg.sender]);
             payable(msg.sender).transfer(transaferAmount);
-            totalTokenSold += currAmount;
+            totalTokenSold = currAmount.add(totalTokenSold);
             tokenRequire = currAmount;
         } else {
-            uint256 transaferAmount = (pricePerToken * tokenRequire) / decimal;
+            uint256 transaferAmount = pricePerToken.mul(tokenRequire).div(
+                decimal
+            );
             require(msg.value >= transaferAmount, "ICO: Insufficient fees");
-            contributers[msg.sender] += tokenRequire;
-            totalTokenSold += tokenRequire;
+            contributers[msg.sender] = tokenRequire.add(
+                contributers[msg.sender]
+            );
+            totalTokenSold = tokenRequire.add(totalTokenSold);
             tokenAmountInEth = msg.value;
         }
         emit Invest(
@@ -125,7 +139,7 @@ contract ico {
         );
     }
 
-    function withdrawICOToken() external postIcoState {
+    function withdrawICOToken() external postIcoState nonReentrant {
         uint256 transferableToken = contributers[msg.sender];
         require(transferableToken > 0, "ICO: No token to transfer");
         token.transfer(msg.sender, transferableToken);
@@ -135,3 +149,4 @@ contract ico {
 }
 
 // Add whitelist / other sales
+// change uint256 to respective max value uint's

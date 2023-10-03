@@ -5,17 +5,19 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract CFNC is ERC20 {
     address public Owner;
-    address ICO;
 
     modifier OnlyOwner() {
         require(msg.sender == Owner, "CFNC: Not Owner");
         _;
     }
 
-    constructor(address _ico) ERC20("Chief Finance Token", "CFNC") {
+    constructor() ERC20("Chief Finance Token", "CFNC") {
         uint256 maxSupply = 750000000 * 10 ** decimals();
         Owner = msg.sender;
-        _mint(address(this), maxSupply);
-        approve(_ico, maxSupply);
+        _mint(msg.sender, maxSupply);
+    }
+
+    function transferToIco(address _ico) public OnlyOwner {
+        transfer(_ico, balanceOf(msg.sender));
     }
 }
