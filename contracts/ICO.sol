@@ -41,7 +41,7 @@ contract ico is ReentrancyGuard {
     mapping(address => uint256) contributers;
 
     event Invest(uint256 amount, uint256 tokens, address by, uint256 time);
-    event WithdrawICOTokens(uint256 amount, address to);
+    event ClaimToken(uint256 amount, address to);
 
     constructor(
         address _token,
@@ -125,12 +125,12 @@ contract ico is ReentrancyGuard {
         );
     }
 
-    function withdrawICOToken() external postIcoState nonReentrant {
+    function claimToken() external postIcoState nonReentrant {
         uint256 transferableToken = contributers[msg.sender];
         require(transferableToken > 0, "ICO: No token to transfer");
         token.transfer(msg.sender, transferableToken);
         delete contributers[msg.sender];
-        emit WithdrawICOTokens(transferableToken, msg.sender);
+        emit ClaimToken(transferableToken, msg.sender);
     }
 }
 
