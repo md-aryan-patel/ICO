@@ -8,23 +8,25 @@ import "./Token.sol";
 
 contract ico is ReentrancyGuard {
     using SafeMath for uint256;
+    using SafeMath for uint64;
+    using SafeMath for uint8;
 
     IERC20 token;
     uint256 cap;
     uint256 public pricePerToken;
-    uint256 public startTime;
-    uint256 public endTime;
+    uint64 public startTime;
+    uint64 public endTime;
     address Owner;
     uint256 public totalTokenSold;
     uint256 decimal = 10e18;
 
-    uint256 tokenSalePercentage = 35;
-    uint256 teamSalePercentage = 10;
-    uint256 rewardPoolPercentage = 25;
-    uint256 tokenReservePercentage = 12;
-    uint256 partnershipPercentage = 5;
-    uint256 marketingPercentage = 8;
-    uint256 liquidityPercentage = 5;
+    uint8 constant tokenSalePercentage = 35;
+    uint8 constant teamSalePercentage = 10;
+    uint8 constant rewardPoolPercentage = 25;
+    uint8 constant tokenReservePercentage = 12;
+    uint8 constant partnershipPercentage = 5;
+    uint8 constant marketingPercentage = 8;
+    uint8 constant liquidityPercentage = 5;
 
     uint256 tokenAmountInEth;
 
@@ -44,8 +46,8 @@ contract ico is ReentrancyGuard {
     constructor(
         address _token,
         uint256 _price,
-        uint256 _startTime,
-        uint256 _endTime
+        uint64 _startTime,
+        uint64 _endTime
     ) {
         Owner = msg.sender;
         token = IERC20(_token);
@@ -57,20 +59,20 @@ contract ico is ReentrancyGuard {
 
     modifier preIcoState() {
         setSaleStage();
-        require(uint(stage) == 0, "ICO: ICO already started or may be ended");
+        require(uint8(stage) == 0, "ICO: ICO already started or may be ended");
         _;
     }
 
     modifier icoState() {
         setSaleStage();
-        require(uint(stage) == 1, "ICO: ICO not started yet");
+        require(uint8(stage) == 1, "ICO: ICO not started yet");
         _;
     }
 
     modifier postIcoState() {
         setSaleStage();
         require(
-            uint(stage) == 2,
+            uint8(stage) == 2,
             "ICO: ICO may be going on or may not be started yet"
         );
         _;
@@ -81,20 +83,12 @@ contract ico is ReentrancyGuard {
         return stage;
     }
 
-    function returnTimedStage() internal view returns (uint256 _state) {
-        if (block.timestamp < startTime) _state = 0;
-        else if (block.timestamp >= startTime && block.timestamp <= endTime)
-            _state = 1;
-        else if (block.timestamp > endTime) _state = 2;
-        else _state = 3;
-    }
-
     function setSaleStage() internal {
-        uint256 currentState = returnTimedStage();
-        require(currentState < 3, "ICO: Invalid Stage of ICO");
-        if (currentState == 0) stage = SaleStage.preICO;
-        else if (currentState == 1) stage = SaleStage.ICO;
-        else if (currentState == 2) stage = SaleStage.postICO;
+        if (block.timestamp < startTime) stage = SaleStage.preICO;
+        else if (block.timestamp >= startTime && block.timestamp <= endTime)
+            stage = SaleStage.ICO;
+        else if (block.timestamp > endTime) stage = SaleStage.postICO;
+        else revert("ICO: Somthing went wrong");
     }
 
     function invest()
@@ -114,23 +108,15 @@ contract ico is ReentrancyGuard {
         );
 
         if (tokenRequire >= currAmount) {
-            tokenAmountInEth = pricePerToken.mul(currAmount).div(decimal);
-            uint256 transaferAmount = msg.value.sub(tokenAmountInEth);
-            contributers[msg.sender] = currAmount.add(contributers[msg.sender]);
-            payable(msg.sender).transfer(transaferAmount);
-            totalTokenSold = currAmount.add(totalTokenSold);
             tokenRequire = currAmount;
-        } else {
-            uint256 transaferAmount = pricePerToken.mul(tokenRequire).div(
-                decimal
-            );
-            require(msg.value >= transaferAmount, "ICO: Insufficient fees");
-            contributers[msg.sender] = tokenRequire.add(
-                contributers[msg.sender]
-            );
-            totalTokenSold = tokenRequire.add(totalTokenSold);
-            tokenAmountInEth = msg.value;
-        }
+            tokenAmountInEth = pricePerToken.mul(tokenRequire).div(decimal);
+            uint256 transaferAmount = msg.value.sub(tokenAmountInEth);
+            payable(msg.sender).transfer(transaferAmount);
+        } else tokenAmountInEth = msg.value;
+
+        contributers[msg.sender] = tokenRequire.add(contributers[msg.sender]);
+        totalTokenSold = tokenRequire.add(totalTokenSold);
+
         emit Invest(
             tokenAmountInEth,
             tokenRequire,
@@ -149,4 +135,3 @@ contract ico is ReentrancyGuard {
 }
 
 // Add whitelist / other sales
-// change uint256 to respective max value uint's
