@@ -28,7 +28,7 @@ contract ico is ReentrancyGuard {
     uint8 constant marketingPercentage = 8;
     uint8 constant liquidityPercentage = 5;
 
-    uint256 tokenAmountInEth;
+    uint256 ethRequired;
 
     enum SaleStage {
         preICO,
@@ -78,17 +78,20 @@ contract ico is ReentrancyGuard {
         _;
     }
 
-    function getIcoStage() public returns (SaleStage) {
-        setSaleStage();
-        return stage;
+    function getIcoStage() public view returns (uint8) {
+        if (block.timestamp < startTime) return uint8(SaleStage.preICO);
+        else if (block.timestamp >= startTime && block.timestamp <= endTime)
+            return uint8(SaleStage.ICO);
+        else if (block.timestamp > endTime) return uint8(SaleStage.postICO);
+        return 3;
     }
 
     function setSaleStage() internal {
-        if (block.timestamp < startTime) stage = SaleStage.preICO;
-        else if (block.timestamp >= startTime && block.timestamp <= endTime)
-            stage = SaleStage.ICO;
-        else if (block.timestamp > endTime) stage = SaleStage.postICO;
-        else revert("ICO: Somthing went wrong");
+        uint8 currentIcoState = getIcoStage();
+        if (currentIcoState == 0) stage = SaleStage.preICO;
+        else if (currentIcoState == 1) stage = SaleStage.ICO;
+        else if (currentIcoState == 2) stage = SaleStage.postICO;
+        else revert("ICO: Invalid state");
     }
 
     function invest()
@@ -109,20 +112,15 @@ contract ico is ReentrancyGuard {
 
         if (tokenRequire >= currAmount) {
             tokenRequire = currAmount;
-            tokenAmountInEth = pricePerToken.mul(tokenRequire).div(decimal);
-            uint256 transaferAmount = msg.value.sub(tokenAmountInEth);
+            ethRequired = pricePerToken.mul(tokenRequire).div(decimal);
+            uint256 transaferAmount = msg.value.sub(ethRequired);
             payable(msg.sender).transfer(transaferAmount);
-        } else tokenAmountInEth = msg.value;
+        } else ethRequired = msg.value;
 
         contributers[msg.sender] = tokenRequire.add(contributers[msg.sender]);
         totalTokenSold = tokenRequire.add(totalTokenSold);
 
-        emit Invest(
-            tokenAmountInEth,
-            tokenRequire,
-            msg.sender,
-            block.timestamp
-        );
+        emit Invest(ethRequired, tokenRequire, msg.sender, block.timestamp);
     }
 
     function claimToken() external postIcoState nonReentrant {
