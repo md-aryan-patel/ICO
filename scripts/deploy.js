@@ -1,28 +1,38 @@
-// We require the Hardhat Runtime Environment explicitly here. This is optional
-// but useful for running the script in a standalone fashion through `node <script>`.
-//
-// You can also run a script with `npx hardhat run <script>`. If you do that, Hardhat
-// will compile your contracts, add the Hardhat Runtime Environment's members to the
-// global scope, and execute the script.
 const hre = require("hardhat");
-
+const fs = require("fs");
+const icoAbi = require("../artifacts/contracts/ICO.sol/ico.json");
+const tokenAbi = require("../artifacts/contracts/Token.sol/CFNC.json");
 async function main() {
-  const currentTimestampInSeconds = Math.round(Date.now() / 1000);
-  const unlockTime = currentTimestampInSeconds + 60;
+  const token = await hre.ethers.deployContract("CFNC");
+  await token.waitForDeployment();
 
-  const lockedAmount = hre.ethers.parseEther("0.001");
+  const ico = await hre.ethers.deployContract("ico", [
+    token.target,
+    1696503900,
+    1728126300,
+  ]);
+  await ico.waitForDeployment();
 
-  const lock = await hre.ethers.deployContract("Lock", [unlockTime], {
-    value: lockedAmount,
+  const data = JSON.stringify({
+    Token: token.target,
+    ICO: ico.target,
+    TtokenAbi: tokenAbi,
+    IcoAbi: icoAbi,
   });
 
-  await lock.waitForDeployment();
-
-  console.log(
-    `Lock with ${ethers.formatEther(
-      lockedAmount
-    )}ETH and unlock timestamp ${unlockTime} deployed to ${lock.target}`
+  fs.writeFile(
+    "../artifacts/contracts/scriptData.json",
+    data,
+    "utf8",
+    (err) => {
+      if (err) {
+        console.log(err);
+        return;
+      }
+    }
   );
+  console.log(`Token deployed @ ${token.target}`);
+  console.log(`ICO deployed @ ${ico.target}`);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

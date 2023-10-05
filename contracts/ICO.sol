@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "./Token.sol";
 
 contract ico is ReentrancyGuard {
     using SafeMath for uint256;
@@ -12,23 +11,13 @@ contract ico is ReentrancyGuard {
     using SafeMath for uint8;
 
     IERC20 token;
-    uint256 cap;
+    uint256 maxToken;
     uint256 public pricePerToken;
     uint64 public startTime;
     uint64 public endTime;
     address Owner;
     uint256 public totalTokenSold;
-    uint256 decimal = 10e18;
-
-    uint8 constant tokenSalePercentage = 35;
-    uint8 constant teamSalePercentage = 10;
-    uint8 constant rewardPoolPercentage = 25;
-    uint8 constant tokenReservePercentage = 12;
-    uint8 constant partnershipPercentage = 5;
-    uint8 constant marketingPercentage = 8;
-    uint8 constant liquidityPercentage = 5;
-
-    uint256 ethRequired;
+    uint256 decimals = 10e18;
 
     enum SaleStage {
         preICO,
@@ -40,21 +29,31 @@ contract ico is ReentrancyGuard {
 
     mapping(address => uint256) contributers;
 
-    event Invest(uint256 amount, uint256 tokens, address by, uint256 time);
     event ClaimToken(uint256 amount, address to);
+    event UpdateBalance(
+        address user,
+        uint256 usdtSent,
+        uint256 tokenAmount,
+        uint256 timestamp
+    );
+    event PriceUpdate(uint256 newPrice, uint256 updateTime);
 
-    constructor(
-        address _token,
-        uint256 _price,
-        uint64 _startTime,
-        uint64 _endTime
-    ) {
+    constructor(address _token, uint64 _startTime, uint64 _endTime) {
+        require(
+            _startTime > block.timestamp && _startTime < _endTime,
+            "ICO: Invalid Timestamps"
+        );
+        pricePerToken = 3 * 10e4;
         Owner = msg.sender;
         token = IERC20(_token);
-        pricePerToken = _price;
         startTime = _startTime;
         endTime = _endTime;
-        cap = 750000000 * decimal;
+        maxToken = 750000000 * decimals;
+    }
+
+    modifier onlyOwner() {
+        require(msg.sender == Owner, "ICO: Not owner");
+        _;
     }
 
     modifier preIcoState() {
@@ -94,41 +93,33 @@ contract ico is ReentrancyGuard {
         else revert("ICO: Invalid state");
     }
 
-    function invest()
-        external
-        payable
-        icoState
-        nonReentrant
-        returns (uint256 tokenRequire)
-    {
-        uint256 currAmount = token.balanceOf(address(this));
-        require(currAmount > 0, "ICO: Insufficient amount");
-        tokenRequire = msg.value.mul(decimal).div(pricePerToken);
-        require(
-            (tokenRequire + totalTokenSold) <=
-                tokenSalePercentage.mul(cap).div(100),
-            "ICO: Crowdesale quota reached"
-        );
-
-        if (tokenRequire >= currAmount) {
-            tokenRequire = currAmount;
-            ethRequired = pricePerToken.mul(tokenRequire).div(decimal);
-            uint256 transaferAmount = msg.value.sub(ethRequired);
-            payable(msg.sender).transfer(transaferAmount);
-        } else ethRequired = msg.value;
-
-        contributers[msg.sender] = tokenRequire.add(contributers[msg.sender]);
-        totalTokenSold = tokenRequire.add(totalTokenSold);
-
-        emit Invest(ethRequired, tokenRequire, msg.sender, block.timestamp);
+    function updatePricePerToken(uint256 _newPrice) external onlyOwner {
+        pricePerToken = _newPrice;
     }
 
-    function claimToken() external postIcoState nonReentrant {
+    function updateBalance(
+        uint256 _sentUsdt,
+        address _user
+    ) external onlyOwner nonReentrant returns (uint256) {
+        require(_sentUsdt > 0, "ICO: received amount can't be 0");
+        uint256 updatedBalance = _sentUsdt.mul(decimals).div(pricePerToken);
+        require(
+            updatedBalance + totalTokenSold <= maxToken,
+            "ICO: Tokens sold out"
+        );
+        contributers[_user] = contributers[_user].add(updatedBalance);
+        totalTokenSold = totalTokenSold.add(updatedBalance);
+        emit UpdateBalance(_user, _sentUsdt, updatedBalance, block.timestamp);
+        return updatedBalance;
+    }
+
+    function claimToken() external nonReentrant returns (uint256) {
         uint256 transferableToken = contributers[msg.sender];
         require(transferableToken > 0, "ICO: No token to transfer");
         token.transfer(msg.sender, transferableToken);
         delete contributers[msg.sender];
         emit ClaimToken(transferableToken, msg.sender);
+        return transferableToken;
     }
 }
 
