@@ -8,8 +8,8 @@ module.exports = {
 
   networks: {
     sepolia: {
-      url: env.SPOLIA_NETWORK,
-      accounts: [env.ADMIN_PRIVATE_KEY],
+      url: env.sepolia_network,
+      accounts: [env.admin_private_key],
     },
   },
 };

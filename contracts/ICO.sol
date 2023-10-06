@@ -11,7 +11,7 @@ contract ico is ReentrancyGuard {
     using SafeMath for uint8;
 
     IERC20 token;
-    uint256 maxToken;
+    uint256 public maxToken;
     uint256 public pricePerToken;
     uint64 public startTime;
     uint64 public endTime;
