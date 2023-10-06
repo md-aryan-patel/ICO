@@ -8,7 +8,7 @@ async function main() {
 
   const ico = await hre.ethers.deployContract("ico", [
     token.target,
-    1696503900,
+    1696507500,
     1728126300,
   ]);
   await ico.waitForDeployment();
@@ -35,8 +35,6 @@ async function main() {
   console.log(`ICO deployed @ ${ico.target}`);
 }
 
-// We recommend this pattern to be able to use async/await everywhere
-// and properly handle errors.
 main().catch((error) => {
   console.error(error);
   process.exitCode = 1;

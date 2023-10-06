@@ -15,7 +15,7 @@ contract ico is ReentrancyGuard {
     uint256 public pricePerToken;
     uint64 public startTime;
     uint64 public endTime;
-    address Owner;
+    address public Owner;
     uint256 public totalTokenSold;
     uint256 decimals = 10e18;
 
@@ -116,11 +116,14 @@ contract ico is ReentrancyGuard {
     function claimToken() external nonReentrant returns (uint256) {
         uint256 transferableToken = contributers[msg.sender];
         require(transferableToken > 0, "ICO: No token to transfer");
+        require(
+            transferableToken <= token.balanceOf(address(this)),
+            "ICO: Insufficient Balance"
+        );
         token.transfer(msg.sender, transferableToken);
         delete contributers[msg.sender];
         emit ClaimToken(transferableToken, msg.sender);
         return transferableToken;
     }
 }
-
 // Add whitelist / other sales
