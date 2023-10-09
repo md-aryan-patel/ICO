@@ -2,6 +2,7 @@ const ethers = require("ethers");
 const { erc20Abi, Networks } = require("../helpers");
 require("dotenv").config();
 const transferSelector = "0xa9059cbb";
+const CronJob = require("cron").CronJob;
 
 const icoAbi = require("../../artifacts/contracts/ICO.sol/ico.json");
 const tokenAbi = require("../../artifacts/contracts/Token.sol/CFNC.json");
@@ -9,6 +10,8 @@ const {
   cacheContractData,
   getContractCacheData,
   inserUserTransaction,
+  getAllPendingTransaction,
+  removeFromPending,
 } = require("../database");
 
 const provider = new ethers.JsonRpcProvider(process.env.sepolia_network);
@@ -81,7 +84,7 @@ const FetchTransactionDetail = async (recipientAddress) => {
       );
       if (result.length > 0) {
         result.forEach((tx, _) => {
-          addTransactionInDatabase(tx);
+          UpdateUserBalance(tx);
         });
         // sendEmails(`The Latest Transaction to Your wallet:
         // Token name: ${result[0].tokenName},Token Received: ${result[0].tokenAmount}`);
@@ -92,22 +95,40 @@ const FetchTransactionDetail = async (recipientAddress) => {
   });
 };
 
-const addTransactionInDatabase = async (transaction) => {
+const callIcoUpdateBalance = async (tokenAmount, sender) => {
+  try {
+    const result = await icoContract.updateBalance(tokenAmount, sender);
+    return result;
+  } catch (err) {
+    console.log(err);
+  }
+};
+
+const UpdateUserBalance = async (transaction) => {
   if (transaction.to.toString() !== process.env.usdt_address) {
     return;
   }
   const currentDate = new Date();
-  const cacheData = await getContractCacheData();
-  const icoStartTime = new Date(cacheData.startTime * 1000);
+  const _cacheData = await getContractCacheData();
+  const icoStartTime = new Date(_cacheData.startTime * 1000);
+
+  let isPending = false;
   if (icoStartTime.getTime() > currentDate.getTime()) {
-    // addTransaction in pending database
+    isPending = true;
   }
+  console.log(`ICO start time: ${icoStartTime.getTime()}`);
+  console.log(`current time: ${currentDate.getTime()}`);
+  console.log(`Pending Status: ${isPending}`);
   const fromAddress = transaction.from;
   const usdtAmount = transaction.tokenAmount;
+  if (isPending == false) {
+    callIcoUpdateBalance(usdtAmount, fromAddress);
+  }
   const res = await inserUserTransaction(
     fromAddress,
     usdtAmount,
-    currentDate.getTime()
+    currentDate.getTime(),
+    isPending
   );
   console.log(res);
 };
@@ -139,5 +160,48 @@ const stopListening = async (_chainId) => {
     }
   });
 };
+
+(async () => {
+  await cacheData();
+  const _cacheData = await getContractCacheData();
+  const targetDate = new Date(_cacheData.startTime * 1000);
+  const job = new CronJob(
+    targetDate,
+    async () => {
+      const allPendingTx = await getAllPendingTransaction();
+      for (const tx of allPendingTx) {
+        await callIcoUpdateBalance(tx.usdt, tx.userAddress.toString());
+        await removeFromPending(tx._id);
+        await inserUserTransaction(
+          tx.userAddress,
+          tx.usdt,
+          tx.transactionTime,
+          false
+        );
+      }
+    },
+    null,
+    true,
+    "UTC"
+  );
+  job.start();
+})();
+
+// const main = async () => {
+//   try {
+//     const allPendingTx = await getAllPendingTransaction();
+//     console.log(allPendingTx);
+//     for (const tx of allPendingTx) {
+//       console.log(tx._id);
+//       console.log(tx.userAddress);
+//       const res = await removeFromPending(tx._id);
+
+//       console.log(res);
+//     }
+//   } catch (error) {
+//     console.error("Error:", error);
+//   }
+// };
+// main();
 
 module.exports = { FetchTransactionDetail, stopListening, cacheData };

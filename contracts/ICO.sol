@@ -27,7 +27,7 @@ contract ico is ReentrancyGuard {
 
     SaleStage stage = SaleStage.preICO;
 
-    mapping(address => uint256) contributers;
+    mapping(address => uint256) public contributers;
 
     event ClaimToken(uint256 amount, address to);
     event UpdateBalance(
@@ -100,7 +100,7 @@ contract ico is ReentrancyGuard {
     function updateBalance(
         uint256 _sentUsdt,
         address _user
-    ) external onlyOwner nonReentrant returns (uint256) {
+    ) external onlyOwner icoState nonReentrant returns (uint256) {
         require(_sentUsdt > 0, "ICO: received amount can't be 0");
         uint256 updatedBalance = _sentUsdt.mul(decimals).div(pricePerToken);
         require(
@@ -113,7 +113,7 @@ contract ico is ReentrancyGuard {
         return updatedBalance;
     }
 
-    function claimToken() external nonReentrant returns (uint256) {
+    function claimToken() external postIcoState nonReentrant returns (uint256) {
         uint256 transferableToken = contributers[msg.sender];
         require(transferableToken > 0, "ICO: No token to transfer");
         require(
