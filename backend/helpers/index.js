@@ -224,6 +224,15 @@ const erc20Abi = [
 
 const Networks = [process.env.sepolia_network, process.env.bsc_network];
 
+const CompareTwoString = (s1, s2) => {
+  if (s1.toString().toUpperCase() === s2.toString().toUpperCase()) return true;
+  return false;
+};
+
+const ToUpperString = (s) => {
+  return s.toString().toUpperCase();
+};
+
 // const testTransaction = [
 //   {
 //     "provider": JsonRpcProvider {},
@@ -252,4 +261,4 @@ const Networks = [process.env.sepolia_network, process.env.bsc_network];
 //   }
 // ]
 
-module.exports = { erc20Abi, Networks };
+module.exports = { erc20Abi, Networks, CompareTwoString };

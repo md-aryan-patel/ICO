@@ -6,8 +6,14 @@ const uri = "mongodb://0.0.0.0:27017/";
 const client = new MongoClient(uri);
 
 const userDatabase = "icoInvestors";
-const cacheDatabase = "cache-database";
-const pendingTransactionDb = "pending-transaction";
+(async () => {
+  try {
+    await client.connect();
+  } catch (err) {
+    console.log(err);
+  }
+})();
+const db = client.db(userDatabase);
 
 const inserUserTransaction = async (
   userAddress,
@@ -15,29 +21,38 @@ const inserUserTransaction = async (
   transactionTime,
   isPending
 ) => {
-  await client.connect();
-  let db, collection;
-
-  if (isPending) {
-    db = client.db(pendingTransactionDb);
-    collection = db.collection("pending-tx");
-  } else {
-    db = client.db(userDatabase);
-    collection = db.collection("ico-user");
-  }
-
+  let collection;
   try {
-    const result = await collection.insertOne({
-      userAddress,
-      usdt,
-      isClaimed: false,
-      transactionTime,
-    });
-    return result;
+    if (isPending) collection = db.collection("pending-tx");
+    else collection = db.collection("ico-user");
+    if (
+      (
+        await collection.countDocuments(
+          { userAddress: userAddress },
+          { limit: 1 }
+        )
+      ).toString() === "1"
+    ) {
+      const user = await collection.findOne({ userAddress: userAddress });
+      const updatedBalance = user.usdt + usdt;
+      const updateUserBalance = await collection.updateOne(
+        { userAddress: userAddress },
+        { $set: { usdt: updatedBalance } }
+      );
+      console.log("Updated...");
+      return updateUserBalance;
+    } else {
+      const result = await collection.insertOne({
+        userAddress,
+        usdt,
+        isClaimed: false,
+        transactionTime,
+      });
+      console.log("Inserted...");
+      return result;
+    }
   } catch (err) {
     console.log(err);
-  } finally {
-    client.close();
   }
 };
 
@@ -49,9 +64,7 @@ const cacheContractData = async (
   endTime,
   owner
 ) => {
-  await client.connect();
-  const replace = { tokenName: "CFNC" };
-  const replacement = {
+  const data = {
     tokenName,
     maxToken,
     pricePerToken,
@@ -59,31 +72,60 @@ const cacheContractData = async (
     endTime,
     owner,
   };
-  const db = client.db(cacheDatabase);
+
+  console.log(startTime);
+
   const collection = db.collection("cache-data");
-  let result;
+  let res;
+
   try {
-    result = await collection.replaceOne(replace, replacement);
+    res = await collection.countDocuments(
+      { tokenName: tokenName },
+      { limit: 1 }
+    );
   } catch (err) {
     console.log(err);
-  } finally {
-    client.close();
   }
-  return result;
+
+  if (res && res === 1) {
+    try {
+      console.log("updating...");
+      const updatedDoc = await collection.updateOne(
+        { tokenName: tokenName },
+        {
+          $set: {
+            tokenName: tokenName,
+            maxToken: maxToken,
+            pricePerToken: pricePerToken,
+            startTime: startTime,
+            endTime: endTime,
+            owner: owner,
+          },
+        }
+      );
+      return updatedDoc;
+    } catch (err) {
+      console.log(err);
+    }
+  } else {
+    try {
+      const insertedDoc = await collection.insertOne(data);
+      return insertedDoc;
+    } catch (err) {
+      console.log(err);
+    }
+  }
 };
 
 const getContractCacheData = async () => {
-  await client.connect();
   const query = { tokenName: "CFNC" };
-  const db = client.db(cacheDatabase);
+
   const collection = db.collection("cache-data");
   let res;
   try {
     res = await collection.findOne(query);
   } catch (err) {
     console.log(err);
-  } finally {
-    client.close();
   }
   return res;
 };
@@ -91,34 +133,24 @@ const getContractCacheData = async () => {
 const getAllPendingTransaction = async () => {
   let allTx;
   try {
-    await client.connect();
-    const db = client.db(pendingTransactionDb);
     const collection = db.collection("pending-tx");
     allTx = await collection.find({}).toArray();
   } catch (err) {
     console.log(err);
-  } finally {
-    client.close();
   }
   return allTx;
 };
 
 const removeFromPending = async (_id) => {
   try {
-    await client.connect();
-    const db = client.db(pendingTransactionDb);
     const query = { _id: _id };
     const collection = db.collection("pending-tx");
     const res = await collection.deleteOne(query);
     return res;
   } catch (err) {
     console.log(err);
-  } finally {
-    client.close();
   }
 };
-
-// main();
 
 module.exports = {
   cacheContractData,
@@ -126,4 +158,5 @@ module.exports = {
   inserUserTransaction,
   getAllPendingTransaction,
   removeFromPending,
+  client,
 };

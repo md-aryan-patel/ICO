@@ -8,7 +8,7 @@ async function main() {
 
   const ico = await hre.ethers.deployContract("ico", [
     token.target,
-    1696836600,
+    1696942500,
     1728126300,
   ]);
   await ico.waitForDeployment();
@@ -21,12 +21,12 @@ async function main() {
   });
 
   fs.writeFile(
-    "../artifacts/contracts/scriptData.json",
+    "../backend/scripts/contractAddress.json",
     data,
     "utf8",
-    (err) => {
-      if (err) {
-        console.log(err);
+    (error) => {
+      if (error) {
+        console.log(error);
         return;
       }
     }

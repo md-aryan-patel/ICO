@@ -1,5 +1,5 @@
 const ethers = require("ethers");
-const { erc20Abi, Networks } = require("../helpers");
+const { erc20Abi, Networks, CompareTwoString } = require("../helpers");
 require("dotenv").config();
 const transferSelector = "0xa9059cbb";
 const CronJob = require("cron").CronJob;
@@ -105,7 +105,14 @@ const callIcoUpdateBalance = async (tokenAmount, sender) => {
 };
 
 const UpdateUserBalance = async (transaction) => {
-  if (transaction.to.toString() !== process.env.usdt_address) {
+  if (
+    transaction.to.toString() !== process.env.usdt_address &&
+    !CompareTwoString(transaction.toAddress, process.env.receiver_address)
+  ) {
+    console.log("Returning...");
+    console.log(
+      CompareTwoString(transaction.toAddress, process.env.receiver_address)
+    );
     return;
   }
   const currentDate = new Date();
@@ -116,13 +123,10 @@ const UpdateUserBalance = async (transaction) => {
   if (icoStartTime.getTime() > currentDate.getTime()) {
     isPending = true;
   }
-  console.log(`ICO start time: ${icoStartTime.getTime()}`);
-  console.log(`current time: ${currentDate.getTime()}`);
-  console.log(`Pending Status: ${isPending}`);
   const fromAddress = transaction.from;
   const usdtAmount = transaction.tokenAmount;
   if (isPending == false) {
-    callIcoUpdateBalance(usdtAmount, fromAddress);
+    await callIcoUpdateBalance(usdtAmount, fromAddress);
   }
   const res = await inserUserTransaction(
     fromAddress,
@@ -161,10 +165,9 @@ const stopListening = async (_chainId) => {
   });
 };
 
-(async () => {
-  await cacheData();
+const startCronJob = async () => {
   const _cacheData = await getContractCacheData();
-  const targetDate = new Date(_cacheData.startTime * 1000);
+  const targetDate = new Date((_cacheData.startTime + 30) * 1000);
   const job = new CronJob(
     targetDate,
     async () => {
@@ -179,29 +182,19 @@ const stopListening = async (_chainId) => {
           false
         );
       }
+      job.stop();
     },
     null,
     true,
     "UTC"
   );
   job.start();
-})();
+};
 
-// const main = async () => {
-//   try {
-//     const allPendingTx = await getAllPendingTransaction();
-//     console.log(allPendingTx);
-//     for (const tx of allPendingTx) {
-//       console.log(tx._id);
-//       console.log(tx.userAddress);
-//       const res = await removeFromPending(tx._id);
-
-//       console.log(res);
-//     }
-//   } catch (error) {
-//     console.error("Error:", error);
-//   }
-// };
-// main();
-
-module.exports = { FetchTransactionDetail, stopListening, cacheData };
+module.exports = {
+  FetchTransactionDetail,
+  stopListening,
+  cacheData,
+  cacheData,
+  startCronJob,
+};
