@@ -229,10 +229,6 @@ const CompareTwoString = (s1, s2) => {
   return false;
 };
 
-const ToUpperString = (s) => {
-  return s.toString().toUpperCase();
-};
-
 // const testTransaction = [
 //   {
 //     "provider": JsonRpcProvider {},

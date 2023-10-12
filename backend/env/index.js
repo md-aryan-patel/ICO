@@ -10,9 +10,6 @@ const admin_private_key =
   "ecfc25e59cd52529212388d1591131974c2cefbd9e0993e9ccdb5fa2b112da95";
 const port = "8080";
 
-const Token = "0x80530641F9c11DcF73A75D32701354278DA61685";
-const ICO = "0x128677A49e730b2E81D30DCA31d7bC42416B758D";
-
 module.exports = {
   polygon_network,
   sepolia_network,

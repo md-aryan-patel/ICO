@@ -2,7 +2,7 @@ const { MongoClient } = require("mongodb");
 require("dotenv").config();
 
 // Connection URL
-const uri = "mongodb://0.0.0.0:27017/";
+const uri = process.env.mongo_client;
 const client = new MongoClient(uri);
 
 const userDatabase = "icoInvestors";
