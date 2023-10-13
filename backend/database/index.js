@@ -119,9 +119,8 @@ const cacheContractData = async (
 
 const getContractCacheData = async () => {
   const query = { tokenName: "CFNC" };
-
-  const collection = db.collection("cache-data");
   let res;
+  const collection = db.collection("cache-data");
   try {
     res = await collection.findOne(query);
   } catch (err) {

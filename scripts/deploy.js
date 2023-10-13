@@ -8,7 +8,7 @@ async function main() {
 
   const ico = await hre.ethers.deployContract("ico", [
     token.target,
-    1696942500,
+    1697117400,
     1728126300,
   ]);
   await ico.waitForDeployment();
@@ -35,7 +35,20 @@ async function main() {
   console.log(`ICO deployed @ ${ico.target}`);
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
+const deployBEP20 = async () => {
+  const token = await hre.ethers.deployContract("BEP20", [
+    hre.ethers.parseEther("100000"),
+  ]);
+  await token.waitForDeployment();
+
+  console.log(`BEP deploy at: ${token.target}`);
+};
+
+// main().catch((error) => {
+//   console.error(error);
+//   process.exitCode = 1;
+// });
+
+deployBEP20().catch((err) => {
+  console.log(err);
 });

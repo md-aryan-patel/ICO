@@ -1,11 +1,9 @@
-const ethers = require("ethers");
-const { erc20Abi, Networks, CompareTwoString } = require("../helpers");
-require("dotenv").config();
-const transferSelector = "0xa9059cbb";
-const CronJob = require("cron").CronJob;
-
 const icoAbi = require("../../artifacts/contracts/ICO.sol/ico.json");
-const tokenAbi = require("../../artifacts/contracts/Token.sol/CFNC.json");
+const { erc20Abi, Networks, CompareTwoString } = require("../helpers");
+const CronJob = require("cron").CronJob;
+const transferSelector = "0xa9059cbb";
+const ethers = require("ethers");
+require("dotenv").config();
 const {
   cacheContractData,
   getContractCacheData,
@@ -19,9 +17,6 @@ const adminWallet = new ethers.Wallet(process.env.admin_private_key, provider);
 
 const ico = new ethers.Contract(process.env.ICO, icoAbi.abi, provider);
 const icoContract = ico.connect(adminWallet);
-
-const token = new ethers.Contract(process.env.Token, tokenAbi.abi, provider);
-const tokenContract = ico.connect(adminWallet);
 
 const providers = [];
 let filters = [];
@@ -86,8 +81,6 @@ const FetchTransactionDetail = async (recipientAddress) => {
         result.forEach((tx, _) => {
           UpdateUserBalance(tx);
         });
-        // sendEmails(`The Latest Transaction to Your wallet:
-        // Token name: ${result[0].tokenName},Token Received: ${result[0].tokenAmount}`);
       } else {
         return;
       }
