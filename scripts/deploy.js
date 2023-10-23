@@ -8,8 +8,8 @@ async function main() {
 
   const ico = await hre.ethers.deployContract("ico", [
     token.target,
-    1698046516,
-    1698047116,
+    1698055216,
+    1698062416,
   ]);
   await ico.waitForDeployment();
 

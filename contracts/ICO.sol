@@ -17,7 +17,7 @@ contract ico is ReentrancyGuard {
     uint64 public endTime;
     address public Owner;
     uint256 public totalTokenSold;
-    uint256 decimals = 10e18;
+    uint256 decimals = 10 ** 18;
 
     enum SaleStage {
         preICO,
@@ -129,5 +129,13 @@ contract ico is ReentrancyGuard {
         if (contributers[account] == 0) delete contributers[account];
         emit ClaimToken(claimAmount, account);
         return claimAmount;
+    }
+
+    function changeStartTime(uint64 _startTime) external onlyOwner {
+        startTime = _startTime;
+    }
+
+    function changeEndTime(uint64 _endTime) external onlyOwner {
+        endTime = _endTime;
     }
 }
