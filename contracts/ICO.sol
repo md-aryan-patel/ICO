@@ -114,19 +114,20 @@ contract ico is ReentrancyGuard {
     }
 
     function claimToken(
+        address account,
         uint256 claimAmount
     ) external postIcoState nonReentrant returns (uint256) {
-        uint256 transferableToken = contributers[msg.sender];
+        uint256 transferableToken = contributers[account];
         require(transferableToken > 0, "ICO: No token to transfer");
         require(transferableToken >= claimAmount, "ICO: claim amoutn exceeds");
         require(
             transferableToken <= token.balanceOf(address(this)),
             "ICO: Insufficient Balance"
         );
-        contributers[msg.sender] -= claimAmount;
-        token.transfer(msg.sender, claimAmount);
-        if (contributers[msg.sender] == 0) delete contributers[msg.sender];
-        emit ClaimToken(claimAmount, msg.sender);
+        contributers[account] -= claimAmount;
+        token.transfer(account, claimAmount);
+        if (contributers[account] == 0) delete contributers[account];
+        emit ClaimToken(claimAmount, account);
         return claimAmount;
     }
 }
