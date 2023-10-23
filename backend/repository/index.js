@@ -1,4 +1,4 @@
-const icoAbi = require("../../artifacts/contracts/ICO.sol/ico.json");
+const { icoAbi } = require("../helpers/index");
 const { erc20Abi, Networks, CompareTwoString } = require("../helpers");
 const CronJob = require("cron").CronJob;
 const transferSelector = "0xa9059cbb";
