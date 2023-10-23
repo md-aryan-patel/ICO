@@ -43,7 +43,7 @@ contract ico is ReentrancyGuard {
             _startTime > block.timestamp && _startTime < _endTime,
             "ICO: Invalid Timestamps"
         );
-        pricePerToken = 3 * 10e4;
+        pricePerToken = 3 * (10 ** 4);
         Owner = msg.sender;
         token = IERC20(_token);
         startTime = _startTime;
@@ -113,17 +113,20 @@ contract ico is ReentrancyGuard {
         return updatedBalance;
     }
 
-    function claimToken() external postIcoState nonReentrant returns (uint256) {
+    function claimToken(
+        uint256 claimAmount
+    ) external postIcoState nonReentrant returns (uint256) {
         uint256 transferableToken = contributers[msg.sender];
         require(transferableToken > 0, "ICO: No token to transfer");
+        require(transferableToken >= claimAmount, "ICO: claim amoutn exceeds");
         require(
             transferableToken <= token.balanceOf(address(this)),
             "ICO: Insufficient Balance"
         );
-        token.transfer(msg.sender, transferableToken);
-        delete contributers[msg.sender];
-        emit ClaimToken(transferableToken, msg.sender);
-        return transferableToken;
+        contributers[msg.sender] -= claimAmount;
+        token.transfer(msg.sender, claimAmount);
+        if (contributers[msg.sender] == 0) delete contributers[msg.sender];
+        emit ClaimToken(claimAmount, msg.sender);
+        return claimAmount;
     }
 }
-// Add whitelist / other sales

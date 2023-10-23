@@ -4,7 +4,7 @@ const env = require("./backend/env/index");
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
   solidity: "0.8.19",
-  defaultNetwork: "bnb",
+  defaultNetwork: "sepolia",
 
   networks: {
     sepolia: {
@@ -13,6 +13,10 @@ module.exports = {
     },
     bnb: {
       url: env.bsc_network,
+      accounts: [env.admin_private_key],
+    },
+    polygon: {
+      url: env.polygon_network,
       accounts: [env.admin_private_key],
     },
   },
