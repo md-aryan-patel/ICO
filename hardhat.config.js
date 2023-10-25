@@ -1,5 +1,5 @@
 require("@nomicfoundation/hardhat-toolbox");
-const env = require("./backend/env/index");
+require("dotenv").config();
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
@@ -8,16 +8,16 @@ module.exports = {
 
   networks: {
     sepolia: {
-      url: env.sepolia_network,
-      accounts: [env.admin_private_key],
+      url: process.env.sepolia_network,
+      accounts: [process.env.admin_private_key],
     },
     bnb: {
-      url: env.bsc_network,
-      accounts: [env.admin_private_key],
+      url: process.env.bsc_network,
+      accounts: [process.env.admin_private_key],
     },
     polygon: {
-      url: env.polygon_network,
-      accounts: [env.admin_private_key],
+      url: process.env.polygon_network,
+      accounts: [process.env.admin_private_key],
     },
   },
 };

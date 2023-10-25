@@ -132,10 +132,12 @@ contract ico is ReentrancyGuard {
     }
 
     function changeStartTime(uint64 _startTime) external onlyOwner {
+        require(endTime > _startTime, "end time cannot exceed start time");
         startTime = _startTime;
     }
 
     function changeEndTime(uint64 _endTime) external onlyOwner {
+        require(startTime < endTime, "start time cannot exceed end time");
         endTime = _endTime;
     }
 }
