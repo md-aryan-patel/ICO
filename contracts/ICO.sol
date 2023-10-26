@@ -56,41 +56,12 @@ contract ico is ReentrancyGuard {
         _;
     }
 
-    modifier preIcoState() {
-        setSaleStage();
-        require(uint8(stage) == 0, "ICO: ICO already started or may be ended");
-        _;
-    }
-
-    modifier icoState() {
-        setSaleStage();
-        require(uint8(stage) == 1, "ICO: ICO not started yet");
-        _;
-    }
-
-    modifier postIcoState() {
-        setSaleStage();
-        require(
-            uint8(stage) == 2,
-            "ICO: ICO may be going on or may not be started yet"
-        );
-        _;
-    }
-
     function getIcoStage() public view returns (uint8) {
         if (block.timestamp < startTime) return uint8(SaleStage.preICO);
         else if (block.timestamp >= startTime && block.timestamp <= endTime)
             return uint8(SaleStage.ICO);
         else if (block.timestamp > endTime) return uint8(SaleStage.postICO);
         return 3;
-    }
-
-    function setSaleStage() internal {
-        uint8 currentIcoState = getIcoStage();
-        if (currentIcoState == 0) stage = SaleStage.preICO;
-        else if (currentIcoState == 1) stage = SaleStage.ICO;
-        else if (currentIcoState == 2) stage = SaleStage.postICO;
-        else revert("ICO: Invalid state");
     }
 
     function updatePricePerToken(uint256 _newPrice) external onlyOwner {
@@ -100,7 +71,9 @@ contract ico is ReentrancyGuard {
     function updateBalance(
         uint256 _sentUsdt,
         address _user
-    ) external onlyOwner icoState nonReentrant returns (uint256) {
+    ) external onlyOwner nonReentrant returns (uint256) {
+        require(block.timestamp >= startTime, "ICO: ICO not started yet");
+        require(block.timestamp <= endTime, "ICO: ICO already ended");
         require(_sentUsdt > 0, "ICO: received amount can't be 0");
         uint256 updatedBalance = _sentUsdt.mul(decimals).div(pricePerToken);
         require(
@@ -116,7 +89,8 @@ contract ico is ReentrancyGuard {
     function claimToken(
         address account,
         uint256 claimAmount
-    ) external postIcoState nonReentrant returns (uint256) {
+    ) external nonReentrant returns (uint256) {
+        require(block.timestamp > endTime, "ICO: ICO not yet ended.");
         uint256 transferableToken = contributers[account];
         require(transferableToken > 0, "ICO: No token to transfer");
         require(transferableToken >= claimAmount, "ICO: claim amoutn exceeds");
