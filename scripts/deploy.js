@@ -1,5 +1,4 @@
 const hre = require("hardhat");
-const fs = require("fs");
 
 async function main() {
   const token = await hre.ethers.deployContract("CFNC");
@@ -31,11 +30,11 @@ const deployUsdt = async () => {
   console.log(`token deploy at: ${token.target}`);
 };
 
-// main().catch((error) => {
-//   console.error(error);
-//   process.exitCode = 1;
-// });
-
-deployUsdt().catch((err) => {
-  console.log(err);
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
 });
+
+// deployUsdt().catch((err) => {
+//   console.log(err);
+// });
