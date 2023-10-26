@@ -2,22 +2,16 @@
 pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract CFNC is ERC20 {
-    address public Owner;
+contract USDT is ERC20, Ownable {
+    constructor() ERC20("USDT", "USDT") {}
 
-    modifier OnlyOwner() {
-        require(msg.sender == Owner, "CFNC: Not Owner");
-        _;
+    function mint(address to, uint256 amount) public onlyOwner {
+        _mint(to, amount);
     }
 
-    constructor() ERC20("Chief Finance Token", "CFNC") {
-        uint256 maxSupply = 750000000 * 10 ** decimals();
-        Owner = msg.sender;
-        _mint(msg.sender, maxSupply);
-    }
-
-    function transferToIco(address _ico) public OnlyOwner {
-        transfer(_ico, balanceOf(msg.sender));
+    function decimals() public view virtual override returns (uint8) {
+        return 6;
     }
 }

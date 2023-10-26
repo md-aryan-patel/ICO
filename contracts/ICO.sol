@@ -89,7 +89,7 @@ contract ico is ReentrancyGuard {
     function claimToken(
         address account,
         uint256 claimAmount
-    ) external nonReentrant returns (uint256) {
+    ) external returns (uint256) {
         require(block.timestamp > endTime, "ICO: ICO not yet ended.");
         uint256 transferableToken = contributers[account];
         require(transferableToken > 0, "ICO: No token to transfer");

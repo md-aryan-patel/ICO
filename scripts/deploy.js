@@ -1,14 +1,13 @@
 const hre = require("hardhat");
 const fs = require("fs");
-const icoAbi = require("../artifacts/contracts/ICO.sol/ico.json");
-const tokenAbi = require("../artifacts/contracts/Token.sol/CFNC.json");
+
 async function main() {
   const token = await hre.ethers.deployContract("CFNC");
   await token.waitForDeployment();
 
   const ico = await hre.ethers.deployContract("ico", [
     token.target,
-    1698231600,
+    1698318000,
     1698662700,
   ]);
   await ico.waitForDeployment();
@@ -21,20 +20,22 @@ async function main() {
   console.log("Token transferd to ICO");
 }
 
-const deployBEP20 = async () => {
-  const token = await hre.ethers.deployContract("USDT", [
-    "0xe7144c6dbab38ef5787f7403dea6e1b9b267ed2c",
-  ]);
+const deployUsdt = async () => {
+  const token = await hre.ethers.deployContract("USDT");
+  const mintAddress = "0x80A344d8095d099bb72e6298aA8bA2C9E82A4Cbe";
   await token.waitForDeployment();
+  await token.mint(mintAddress, hre.ethers.parseEther("10000"));
+
+  console.log(`Token minted to ${mintAddress}`);
 
   console.log(`token deploy at: ${token.target}`);
 };
 
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
-
-// deployBEP20().catch((err) => {
-//   console.log(err);
+// main().catch((error) => {
+//   console.error(error);
+//   process.exitCode = 1;
 // });
+
+deployUsdt().catch((err) => {
+  console.log(err);
+});
