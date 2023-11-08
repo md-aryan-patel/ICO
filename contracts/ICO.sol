@@ -4,8 +4,9 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract ico is ReentrancyGuard {
+contract ico is ReentrancyGuard, Ownable {
     using SafeMath for uint256;
     using SafeMath for uint64;
     using SafeMath for uint8;
@@ -15,7 +16,6 @@ contract ico is ReentrancyGuard {
     uint256 public pricePerToken;
     uint64 public startTime;
     uint64 public endTime;
-    address public Owner;
     uint256 public totalTokenSold;
     uint8 public bonusPercentage;
     uint256 decimals = 10 ** 18;
@@ -51,18 +51,13 @@ contract ico is ReentrancyGuard {
             _startTime > block.timestamp && _startTime < _endTime,
             "ICO: Invalid Timestamps"
         );
+        Ownable(msg.sender);
         pricePerToken = 3 * (10 ** 4);
-        Owner = msg.sender;
         token = IERC20(_token);
         startTime = _startTime;
         endTime = _endTime;
         maxToken = 750000000 * decimals;
         bonusPercentage = _bonusPercentage;
-    }
-
-    modifier onlyOwner() {
-        require(msg.sender == Owner, "ICO: Not owner");
-        _;
     }
 
     function getIcoStage() public view returns (uint8) {
