@@ -17,6 +17,7 @@ contract ico is ReentrancyGuard {
     uint64 public endTime;
     address public Owner;
     uint256 public totalTokenSold;
+    uint8 public bonusPercentage;
     uint256 decimals = 10 ** 18;
 
     enum SaleStage {
@@ -28,6 +29,7 @@ contract ico is ReentrancyGuard {
     SaleStage stage = SaleStage.preICO;
 
     mapping(address => uint256) public contributers;
+    mapping(address => uint) public bonusAmounts;
 
     event ClaimToken(uint256 amount, address to);
     event UpdateBalance(
@@ -37,8 +39,14 @@ contract ico is ReentrancyGuard {
         uint256 timestamp
     );
     event PriceUpdate(uint256 newPrice, uint256 updateTime);
+    event ClaimBonusToken(uint256 amount, address claimer);
 
-    constructor(address _token, uint64 _startTime, uint64 _endTime) {
+    constructor(
+        address _token,
+        uint64 _startTime,
+        uint64 _endTime,
+        uint8 _bonusPercentage
+    ) {
         require(
             _startTime > block.timestamp && _startTime < _endTime,
             "ICO: Invalid Timestamps"
@@ -49,6 +57,7 @@ contract ico is ReentrancyGuard {
         startTime = _startTime;
         endTime = _endTime;
         maxToken = 750000000 * decimals;
+        bonusPercentage = _bonusPercentage;
     }
 
     modifier onlyOwner() {
@@ -64,14 +73,12 @@ contract ico is ReentrancyGuard {
         return 3;
     }
 
-    function updatePricePerToken(uint256 _newPrice) external onlyOwner {
-        pricePerToken = _newPrice;
-    }
-
     function updateBalance(
         uint256 _sentUsdt,
-        address _user
+        address _user,
+        address _refAddress
     ) external onlyOwner nonReentrant returns (uint256) {
+        require(_user != _refAddress, "ICO: Invalid reffral  addres");
         require(block.timestamp >= startTime, "ICO: ICO not started yet");
         require(block.timestamp <= endTime, "ICO: ICO already ended");
         require(_sentUsdt > 0, "ICO: received amount can't be 0");
@@ -80,6 +87,18 @@ contract ico is ReentrancyGuard {
             updatedBalance + totalTokenSold <= maxToken,
             "ICO: Tokens sold out"
         );
+        if (_refAddress != address(0)) {
+            require(
+                contributers[_refAddress] > 0,
+                "ICO: Invalid investor referral address"
+            );
+            uint256 bonusAmount = updatedBalance.mul(bonusPercentage).div(100);
+            bonusAmounts[_refAddress] = bonusAmounts[_refAddress].add(
+                bonusAmount
+            );
+            bonusAmounts[_user] = bonusAmounts[_user].add(bonusAmount);
+        }
+
         contributers[_user] = contributers[_user].add(updatedBalance);
         totalTokenSold = totalTokenSold.add(updatedBalance);
         emit UpdateBalance(_user, _sentUsdt, updatedBalance, block.timestamp);
@@ -90,18 +109,39 @@ contract ico is ReentrancyGuard {
         address account,
         uint256 claimAmount
     ) external returns (uint256) {
+        require(account == msg.sender, "ICO: not authorised");
         require(block.timestamp > endTime, "ICO: ICO not yet ended.");
         uint256 transferableToken = contributers[account];
         require(transferableToken > 0, "ICO: No token to transfer");
         require(transferableToken >= claimAmount, "ICO: claim amoutn exceeds");
         require(
             transferableToken <= token.balanceOf(address(this)),
-            "ICO: Insufficient Balance"
+            "ICO: Insufficient token to transfer"
         );
         contributers[account] -= claimAmount;
         token.transfer(account, claimAmount);
         if (contributers[account] == 0) delete contributers[account];
         emit ClaimToken(claimAmount, account);
+        return claimAmount;
+    }
+
+    function claimBonusToken(
+        address account,
+        uint256 claimAmount
+    ) external returns (uint256) {
+        require(account == msg.sender, "ICO: not authorised");
+        require(block.timestamp > endTime, "ICO: ICO not yet ended.");
+        uint256 transferableToken = contributers[account];
+        require(transferableToken > 0, "ICO: No token to transfer");
+        require(transferableToken >= claimAmount, "ICO: claim amoutn exceeds");
+        require(
+            transferableToken <= token.balanceOf(address(this)),
+            "ICO: Insufficient token to transfer"
+        );
+        bonusAmounts[account] -= claimAmount;
+        token.transfer(account, claimAmount);
+        if (bonusAmounts[account] == 0) delete bonusAmounts[account];
+        emit ClaimBonusToken(claimAmount, account);
         return claimAmount;
     }
 
@@ -113,5 +153,13 @@ contract ico is ReentrancyGuard {
     function changeEndTime(uint64 _endTime) external onlyOwner {
         require(startTime < endTime, "start time cannot exceed end time");
         endTime = _endTime;
+    }
+
+    function updateBonusPercentage(uint8 _newPercentaeg) external onlyOwner {
+        bonusPercentage = _newPercentaeg;
+    }
+
+    function updatePricePerToken(uint256 _newPrice) external onlyOwner {
+        pricePerToken = _newPrice;
     }
 }

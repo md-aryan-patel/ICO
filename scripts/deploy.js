@@ -1,4 +1,5 @@
 const hre = require("hardhat");
+require("dotenv").config();
 
 async function main() {
   const token = await hre.ethers.deployContract("CFNC");
@@ -6,8 +7,9 @@ async function main() {
 
   const ico = await hre.ethers.deployContract("ico", [
     token.target,
-    1698318000,
-    1698662700,
+    process.env.startTime,
+    process.env.endTime,
+    5,
   ]);
   await ico.waitForDeployment();
 
