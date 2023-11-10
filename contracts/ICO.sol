@@ -40,6 +40,9 @@ contract ico is ReentrancyGuard, Ownable {
     );
     event PriceUpdate(uint256 newPrice, uint256 updateTime);
     event ClaimBonusToken(uint256 amount, address claimer);
+    event ChangeEndTime(uint256 newTime);
+    event UpdateBonusPercentage(uint8 newPercentage);
+    event UpdatePricePerToken(uint256 newPricePerToken);
 
     constructor(
         address _token,
@@ -91,7 +94,7 @@ contract ico is ReentrancyGuard, Ownable {
             bonusAmounts[_refAddress] = bonusAmounts[_refAddress].add(
                 bonusAmount
             );
-            bonusAmounts[_user] = bonusAmounts[_user].add(bonusAmount);
+            // bonusAmounts[_user] = bonusAmounts[_user].add(bonusAmount);
         }
 
         contributers[_user] = contributers[_user].add(updatedBalance);
@@ -148,13 +151,17 @@ contract ico is ReentrancyGuard, Ownable {
     function changeEndTime(uint64 _endTime) external onlyOwner {
         require(startTime < endTime, "start time cannot exceed end time");
         endTime = _endTime;
+        emit ChangeEndTime(endTime);
     }
 
     function updateBonusPercentage(uint8 _newPercentaeg) external onlyOwner {
         bonusPercentage = _newPercentaeg;
+        emit UpdateBonusPercentage(bonusPercentage);
     }
 
     function updatePricePerToken(uint256 _newPrice) external onlyOwner {
+        require(_newPrice > 0, "Price can't be zero");
         pricePerToken = _newPrice;
+        emit UpdatePricePerToken(pricePerToken);
     }
 }
