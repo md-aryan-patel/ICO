@@ -12,7 +12,6 @@ contract ico is ReentrancyGuard, Ownable {
     using SafeMath for uint8;
 
     IERC20 token;
-    uint256 public maxToken;
     uint256 public pricePerToken;
     uint64 public startTime;
     uint64 public endTime;
@@ -59,7 +58,6 @@ contract ico is ReentrancyGuard, Ownable {
         token = IERC20(_token);
         startTime = _startTime;
         endTime = _endTime;
-        maxToken = 750000000 * decimals;
         bonusPercentage = _bonusPercentage;
     }
 
@@ -76,16 +74,15 @@ contract ico is ReentrancyGuard, Ownable {
         address _user,
         address _refAddress
     ) external onlyOwner nonReentrant returns (uint256) {
-        require(_user != _refAddress, "ICO: Invalid reffral  addres");
         require(block.timestamp >= startTime, "ICO: ICO not started yet");
         require(block.timestamp <= endTime, "ICO: ICO already ended");
         require(_sentUsdt > 0, "ICO: received amount can't be 0");
         uint256 updatedBalance = _sentUsdt.mul(decimals).div(pricePerToken);
         require(
-            updatedBalance + totalTokenSold <= maxToken,
+            updatedBalance + totalTokenSold <= token.balanceOf(address(this)),
             "ICO: Tokens sold out"
         );
-        if (_refAddress != address(0)) {
+        if (_refAddress != address(0) && _user != _refAddress) {
             require(
                 contributers[_refAddress] > 0,
                 "ICO: Invalid investor referral address"
@@ -110,8 +107,8 @@ contract ico is ReentrancyGuard, Ownable {
         require(account == msg.sender, "ICO: not authorised");
         require(block.timestamp > endTime, "ICO: ICO not yet ended.");
         uint256 transferableToken = contributers[account];
-        require(transferableToken > 0, "ICO: No token to transfer");
-        require(transferableToken >= claimAmount, "ICO: claim amoutn exceeds");
+        require(transferableToken > 0, "ICO: Insufficient user balance");
+        require(transferableToken >= claimAmount, "ICO: claim amount exceeds");
         require(
             transferableToken <= token.balanceOf(address(this)),
             "ICO: Insufficient token to transfer"
@@ -143,13 +140,11 @@ contract ico is ReentrancyGuard, Ownable {
         return claimAmount;
     }
 
-    function changeStartTime(uint64 _startTime) external onlyOwner {
-        require(endTime > _startTime, "end time cannot exceed start time");
-        startTime = _startTime;
-    }
-
     function changeEndTime(uint64 _endTime) external onlyOwner {
-        require(startTime < endTime, "start time cannot exceed end time");
+        require(
+            startTime < _endTime,
+            "IOC: Ensure that the end time occurs after the start time."
+        );
         endTime = _endTime;
         emit ChangeEndTime(endTime);
     }
