@@ -103,7 +103,7 @@ contract ico is ReentrancyGuard, Ownable {
     function claimToken(
         address account,
         uint256 claimAmount
-    ) external returns (uint256) {
+    ) external nonReentrant returns (uint256) {
         require(account == msg.sender, "ICO: not authorised");
         require(block.timestamp > endTime, "ICO: ICO not yet ended.");
         uint256 transferableToken = contributers[account];
@@ -123,7 +123,7 @@ contract ico is ReentrancyGuard, Ownable {
     function claimBonusToken(
         address account,
         uint256 claimAmount
-    ) external returns (uint256) {
+    ) external nonReentrant returns (uint256) {
         require(account == msg.sender, "ICO: not authorised");
         require(block.timestamp > endTime, "ICO: ICO not yet ended.");
         uint256 transferableToken = contributers[account];
@@ -158,5 +158,14 @@ contract ico is ReentrancyGuard, Ownable {
         require(_newPrice > 0, "Price can't be zero");
         pricePerToken = _newPrice;
         emit UpdatePricePerToken(pricePerToken);
+    }
+
+    function withdrawRemainingToken(address _to) external onlyOwner {
+        require(block.timestamp > endTime, "ICO: ICO not yet ended.");
+        require(
+            token.balanceOf(address(this)) > 0,
+            "ICO: No token to transfer"
+        );
+        token.transfer(_to, token.balanceOf(address(this)));
     }
 }
