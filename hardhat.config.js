@@ -4,9 +4,13 @@ require("dotenv").config();
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
   solidity: "0.8.19",
-  defaultNetwork: "sepolia",
+  defaultNetwork: "ganache",
 
   networks: {
+    ganache: {
+      url: process.env.ganache_network,
+      accounts: [process.env.admin_private_key],
+    },
     sepolia: {
       url: process.env.sepolia_network,
       accounts: [process.env.admin_private_key],
