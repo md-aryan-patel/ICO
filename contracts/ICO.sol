@@ -128,7 +128,7 @@ contract ico is ReentrancyGuard, Ownable {
         require(block.timestamp > endTime, "ICO: ICO not yet ended.");
         uint256 transferableToken = contributers[account];
         require(transferableToken > 0, "ICO: No token to transfer");
-        require(transferableToken >= claimAmount, "ICO: claim amoutn exceeds");
+        require(transferableToken >= claimAmount, "ICO: claim amount exceeds");
         require(
             transferableToken <= token.balanceOf(address(this)),
             "ICO: Insufficient token to transfer"
